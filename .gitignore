@@ -1,0 +1,8 @@
+.vscode
+output
+*.pyc
+dataset
+tmp
+__pycache__
+DoInterpolacji2.tab
+points.lyr
