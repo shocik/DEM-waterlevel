@@ -2,7 +2,7 @@
 
 import os
 #set workdir
-#os.chdir("/content/drive/MyDrive/RiverSemanticSegmentation/")
+#os.chdir("/content/drive/MyDrive/RiverSemanticSegmentation/"
 
 #imports
 import numpy as np
