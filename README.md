@@ -22,7 +22,7 @@ Uruchomienie kodu na własnym komputerze wymaga wykonania następujących krokó
     #set workdir
     os.chdir("/content/drive/MyDrive/DEM-waterlevel/ml/")
     ```
-3. Modyfikacja ścieżki do zbioru uczącego/testującego w pliku [train.ipynb](ml/train.ipynb):
+3. Modyfikacja ścieżki do zbioru danych w pliku [train.ipynb](ml/train.ipynb):
     ```Python
     #dataset configuration
     dataset_dir = os.path.normpath("/content/drive/MyDrive/DEM-waterlevel/dataset")
