@@ -17,3 +17,13 @@ Poniżej znajduje się wizualizacja pojedynczej próbki datasetu. Pierwszy obraz
 Uruchomienie kodu na własnym komputerze wymaga wykonania następujących kroków przygotowujących:
 
 1. Wprowadzenie danych neptune w pliku [config.cfg](ml/config.cfg).
+2. Modyfikacja ścieżki do folderu roboczego:
+    ```Python
+    #set workdir
+    os.chdir("/content/drive/MyDrive/DEM-waterlevel/ml/")
+    ```
+3. Modyfikacja ścieżki do zbioru uczącego/testującego:
+    ```Python
+    #dataset configuration
+    dataset_dir = os.path.normpath("/content/drive/MyDrive/DEM-waterlevel/dataset")
+    ```
