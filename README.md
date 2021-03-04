@@ -13,6 +13,10 @@ Poniżej znajduje się wizualizacja pojedynczej próbki datasetu. Pierwszy obraz
 
 [![dataset.png](https://i.postimg.cc/bYQM3wDB/Microsoft-Teams-image.png)](https://postimg.cc/HjkBLHtw)
 
+Dataset został stworzony automatycznie przy pomocy skryptu napisanego w języku Python dzielącego ortofotomapy oraz cyfrowe mapy terenu obszarów rzecznych na kwadraty przedstawiające obszary 10x10m oraz odfiltującego kwadraty nie zawierające rzeki.
+
+Ortofotomapy oraz cyfrowe mapy terenu zostały pozyskane w wyniku kampani pomiarowych przeprowadzanych w ramach mojej pracy doktorskiej.
+
 ## Uruchomienie
 Uruchomienie kodu na własnym komputerze wymaga wykonania następujących kroków przygotowujących:
 
