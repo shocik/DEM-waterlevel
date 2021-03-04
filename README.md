@@ -13,7 +13,9 @@ Poniżej znajduje się wizualizacja pojedynczej próbki datasetu. Pierwszy obraz
 
 [![dataset.png](https://i.postimg.cc/bYQM3wDB/Microsoft-Teams-image.png)](https://postimg.cc/HjkBLHtw)
 
-Dataset został stworzony automatycznie przy pomocy skryptu napisanego w języku Python odszumiającego powierzchnie wody na cyfrowych mapach terenu przy użyciu geodezyjnych danych wysokościowych uzyskanych z pomiarów in-situ, oraz dzielącego ortofotomapy i cyfrowe mapy terenu obszarów rzecznych na kwadraty przedstawiające obszary 10x10m i odfiltującego kwadraty nie zawierające rzeki.
+Dataset został stworzony automatycznie przy pomocy skryptu napisanego w języku Python odszumiającego powierzchnie wody na cyfrowych mapach terenu przy użyciu geodezyjnych danych wysokościowych uzyskanych z pomiarów in-situ oraz dzielącego ortofotomapy i cyfrowe mapy terenu obszarów rzecznych na kwadraty przedstawiające obszary 10x10m.
+
+Ortofotomapy, cyfrowe mapy terenu oraz dane wysokościowe in-situ zostały pozyskane w ramach kampanii pomiarowych prowadzonych w ramach przygotowywanej pracy doktorskiej.
 
 ## Uruchomienie
 Uruchomienie kodu na własnym komputerze wymaga wykonania następujących kroków przygotowujących:
