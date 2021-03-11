@@ -82,7 +82,7 @@ class VggUnet(nn.Module):
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             # concat 64
             # upconv1
-            nn.Conv2d(128+64, 64, 3, padding=1),
+            nn.Conv2d(128+64+1, 64, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 64, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -96,6 +96,8 @@ class VggUnet(nn.Module):
     def forward(self, x):
         #block index initialization
         i=0
+        self.conv_out[i] = torch.narrow(x, 1, 0, 1)
+        #print(self.conv_out[i])
         #forward encoder
         for layer in self.encoder:
             if isinstance(layer, torch.nn.MaxPool2d):
@@ -109,10 +111,10 @@ class VggUnet(nn.Module):
             if isinstance(layer, torch.nn.Upsample):
                 x = layer(x)
                 x = torch.cat([x, self.conv_out[i]], dim=1)
+                if i==1:
+                  x = torch.cat([x, self.conv_out[0]], dim=1)
                 i-=1 # 5 -> 1
             else:
                 x = layer(x)
         x = self.activation(x)
         return x  
-
-
