@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
+
 #set workdir
 #os.chdir("/content/drive/MyDrive/DEM-waterlevel/ml/")
 
@@ -30,10 +32,12 @@ PARAMS = {
     'patience': 10,
     'image_preload': False,
     'names': ['17.npy','12.npy'],
-    'train': True,
-    'predict': True
+    'task': "all",
 }
-
+if len(sys.argv)>1:
+  assert sys.argv[1] in ["train", "predict", "all"]
+  PARAMS["task"]=sys.argv[1]
+print("Task: " + PARAMS["task"])
 
 #dataset configuration
 dataset_dir = os.path.normpath("dataset")
@@ -67,7 +71,7 @@ model = model.to(device)
 model_stats = summary(model, input_size=(PARAMS['batch_size'], 4, PARAMS['img_size'], PARAMS['img_size']))
 
 
-if PARAMS["train"]:
+if PARAMS["task"] in ["train", "all"]:
   from collections import defaultdict
   import torch.nn.functional as F
   def calc_loss(pred, target, metrics):
@@ -158,7 +162,7 @@ if PARAMS["train"]:
   # save weights
   torch.save(model.state_dict(),"state_dict.pth")
 
-if PARAMS["predict"]:
+if PARAMS["task"] in ["predict", "all"]:
   # load weights
   model.load_state_dict(torch.load("state_dict.pth", map_location="cpu"))
   device = torch.device('cpu')
