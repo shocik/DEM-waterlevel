@@ -1,28 +1,25 @@
+from helper import denormalize
 from torch.utils.data import DataLoader
 from dataloader import DenoiseDataset
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-def plot_side_by_side(x,y):
-  assert x.shape[0] == y.shape[0]
-  batch_size = x.shape[0]
-  fig, axs = plt.subplots(batch_size, 3)
-  for i in range(batch_size):
-    axs[i, 0].imshow(x[i,1:4].permute(1, 2, 0))
-    min_val = torch.min(x[i,0])
-    max_val = torch.max(x[i,0])
-    axs[i, 1].imshow(x[i,0])
-    axs[i, 2].imshow(np.squeeze(y[i]), vmin = min_val, vmax = max_val)
-  plt.show()
+from helper import plot_side_by_side
 
 
 dir = os.path.normpath(r"D:\Doktorat\Badania\DEM-waterlevel\dataset\train")
-dataset = DenoiseDataset(dir, 256, augment=False)
-dataloader = DataLoader(dataset, batch_size=3, shuffle=True, num_workers=0)
+dataset = DenoiseDataset(dir, 256, names=["17.npy"])
+batch_size=1
+dataloader = DataLoader(dataset, batch_size, shuffle=False, num_workers=0)
 
 x, y = next(iter(dataloader))
+x_dem = x[:,0].numpy()
+x_ort = x[:,1:4].numpy()
+y_dem = y[:,0].numpy()
+for i in range(x_ort.shape[0]):
+    x_dem[i] = denormalize(x_dem[i], "dem")
+    x_ort[i] = denormalize(x_ort[i], "ort")
+    y_dem[i] = denormalize(y_dem[i], "dem")
+plot_side_by_side(x_ort,x_dem,y_dem)
 
-plot_side_by_side(x,y)
-print(x)

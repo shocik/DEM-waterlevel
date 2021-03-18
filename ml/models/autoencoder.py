@@ -27,15 +27,21 @@ class Autoencoder(nn.Module):
             torch.nn.LeakyReLU(),
             nn.BatchNorm2d(64),
 
-
+            torch.nn.Conv2d(64, 128, 3, padding=1, stride=2),
+            torch.nn.LeakyReLU(),
+            nn.BatchNorm2d(128),
         )
         self.dense = torch.nn.Sequential(
-            torch.nn.Linear(int(64*input_size/4*input_size/4),16),
-            torch.nn.Linear(16,int(64*input_size/4*input_size/4))
+            torch.nn.Linear(int(128*input_size/8*input_size/8),512),
+            torch.nn.Linear(512,int(128*input_size/8*input_size/8))
         )
         self.decoder = torch.nn.Sequential(
             #Print(),
-            torch.nn.ConvTranspose2d(64,64, 3, stride=2,padding=1, output_padding=1),
+            torch.nn.ConvTranspose2d(128,128, 3, stride=2,padding=1, output_padding=1),
+            torch.nn.LeakyReLU(),
+            nn.BatchNorm2d(128),
+            #Print(),
+            torch.nn.ConvTranspose2d(128,64, 3, stride=2,padding=1, output_padding=1),
             torch.nn.LeakyReLU(),
             nn.BatchNorm2d(64),
             #Print(),
