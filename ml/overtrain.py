@@ -20,18 +20,18 @@ import time
 import copy
 import pdb
 from tqdm import tqdm
-from helper import plot_side_by_side
+from helper import plot_side_by_side, denormalize
 
 #training parameters in neptune format
 PARAMS = {
     "img_size": 256,
-    "model": "vgg_unet",
-    "learning_rate": 0.01,
-    "batch_size": 2,
+    "model": "autoencoder",
+    "learning_rate": 0.1,
+    "batch_size": 1,
     'epochs': 1000,
     'patience': 10,
     'image_preload': False,
-    'names': ['17.npy','12.npy'],
+    'names': ['17.npy'],
     'task': "all",
 }
 if len(sys.argv)>1:
@@ -168,18 +168,13 @@ if PARAMS["task"] in ["predict", "all"]:
   device = torch.device('cpu')
   model = model.to(device)
   # denormalization function
-  from torchvision import transforms
-  inv_normalize = transforms.Normalize(
-    mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225],
-    std=[1/0.229, 1/0.224, 1/0.225]
-  )
 
 
   # visualize example segmentation
   import math
   model.eval()   # Set model to evaluate mode
   test_dataset = train_set#DenoiseDataset(test_dir, img_size=PARAMS['img_size'], count=PARAMS["test_dataset_size"])
-  test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False, num_workers=0)
+  test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
   inputs, gts = next(iter(test_loader))
   inputs = inputs.to(device)
   gts = gts.to(device)
