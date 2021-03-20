@@ -7,4 +7,5 @@ __pycache__
 DoInterpolacji2.tab
 points.lyr
 
-config.cfg
+ml/config.cfg
+ml-env
