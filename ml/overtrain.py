@@ -24,6 +24,7 @@ from helper import plot_side_by_side, denormalize
 
 #training parameters in neptune format
 PARAMS = {
+
     "img_size": 256,
     "model": "autoencoder",
     "learning_rate": 0.1,
@@ -39,6 +40,17 @@ if len(sys.argv)>1:
   PARAMS["task"]=sys.argv[1]
 print("Task: " + PARAMS["task"])
 
+if PARAMS["task"]=="all":
+  #neptune initialization
+  import configparser
+  config = configparser.ConfigParser()
+  config.read("./config.cfg")
+  import neptune
+  neptune.init(project_qualified_name=config["neptune"]["project"],
+              api_token=config["neptune"]["token"],
+              )
+  neptune.create_experiment(params=PARAMS)
+  neptune.append_tag("overtrain")
 #dataset configuration
 dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
@@ -69,7 +81,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = model.to(device)
 model_stats = summary(model, input_size=(PARAMS['batch_size'], 4, PARAMS['img_size'], PARAMS['img_size']))
-
+if PARAMS["task"]=="all":
+  for line in str(model_stats).splitlines():
+    neptune.log_text('model_summary', line)
 
 if PARAMS["task"] in ["train", "all"]:
   from collections import defaultdict
@@ -84,7 +98,7 @@ if PARAMS["task"] in ["train", "all"]:
       outputs = []
       for k in metrics.keys():
           outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
-          #neptune.log_metric(phase+"_"+k, metrics[k] / epoch_samples) #log
+          neptune.log_metric("overtrain_"+k, metrics[k] / epoch_samples) #log
       print("{}: {}".format("train", ", ".join(outputs)))
 
   #training loop
@@ -186,8 +200,10 @@ if PARAMS["task"] in ["predict", "all"]:
   inputs = inputs.data.cpu()
 
   # use helper function to plot
-  plot_side_by_side(inputs, gts, pred)
+  fig = plot_side_by_side(inputs, gts, pred)
 
-
-
+if PARAMS["task"]=="all":
+  from neptunecontrib.api import log_chart
+  log_chart(name='matplotlib_figure', chart=fig)
+  neptune.stop()
 

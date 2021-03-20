@@ -53,4 +53,5 @@ def plot_side_by_side(*arg):
             #    axs[i, 3].imshow(denormalize(np.squeeze(y_dem_pr[i]),"dem"), vmin = min_val, vmax = max_val)
     axs = np.squeeze(axs)
     plt.show()
+    return fig
 
