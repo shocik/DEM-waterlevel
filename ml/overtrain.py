@@ -214,7 +214,6 @@ if PARAMS["task"] in ["predict", "all"]:
   fig = plot_side_by_side(x_ort, x_dem, y_dem_gt, y_dem_pr)
 
 if PARAMS["task"]=="all":
-  from neptunecontrib.api import log_chart
-  log_chart(name='matplotlib_figure', chart=fig)
+  neptune.log_image('matplotlib-fig', fig, image_name='input-gt-output')
   neptune.stop()
 
