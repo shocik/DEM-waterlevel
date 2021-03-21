@@ -34,11 +34,12 @@ PARAMS = {
     'image_preload': False,
     'names': ['17.npy'],
     'task': "all",
+    'min_improvement': 0.0001
 }
 if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
   PARAMS["task"]=sys.argv[1]
-print("Task: " + PARAMS["task"])
+print(PARAMS)
 
 if PARAMS["task"]=="all":
   #neptune initialization
@@ -152,7 +153,7 @@ if PARAMS["task"] in ["train", "all"]:
 
               # deep copy the model
 
-              if epoch_loss - best_loss < -0.000001:
+              if epoch_loss - best_loss < -PARAMS['min_improvement']:
                 no_improvement = 0
                 print("Loss improved by {}. Saving best model.".format(best_loss-epoch_loss))
                 best_loss = epoch_loss
