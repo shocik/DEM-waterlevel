@@ -41,6 +41,15 @@ if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
   PARAMS["task"]=sys.argv[1]
 print(PARAMS)
+#model loading
+if PARAMS['model'] == "vgg_unet":
+  from models.vgg_unet import VggUnet
+  model = VggUnet()
+  model_src = 'vgg_unet.py'
+elif PARAMS['model'] == "autoencoder":
+  from models.autoencoder import Autoencoder
+  model = Autoencoder(PARAMS['img_size'])
+  model_src = 'autoencoder.py'
 
 if PARAMS["neptune"]:
   #neptune initialization
@@ -52,7 +61,7 @@ if PARAMS["neptune"]:
   neptune.init(project_qualified_name=config["neptune"]["project"],
               api_token=config["neptune"]["token"],
               )
-  neptune.create_experiment(params=PARAMS)
+  neptune.create_experiment(params=PARAMS, upload_source_files=['overtrain.py', model_src])
   neptune.append_tag("overtrain")
 #dataset configuration
 dataset_dir = os.path.normpath("dataset")
@@ -71,13 +80,7 @@ if PARAMS['image_preload']:
     for inputs, labels in tqdm(dataloader[phase]):
       pass
 
-#model loading
-if PARAMS['model'] == "vgg_unet":
-  from models.vgg_unet import VggUnet
-  model = VggUnet()
-elif PARAMS['model'] == "autoencoder":
-  from models.autoencoder import Autoencoder
-  model = Autoencoder(PARAMS['img_size'])
+
 
 #model structure preview
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
