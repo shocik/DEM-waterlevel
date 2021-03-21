@@ -34,14 +34,15 @@ PARAMS = {
     'image_preload': False,
     'names': ['17.npy'],
     'task': "all",
-    'min_improvement': 0.0001
+    'min_improvement': 0.0001,
+    'neptune': True
 }
 if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
   PARAMS["task"]=sys.argv[1]
 print(PARAMS)
 
-if PARAMS["task"]=="all":
+if PARAMS["neptune"]:
   #neptune initialization
  
   import configparser
@@ -83,7 +84,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = model.to(device)
 model_stats = summary(model, input_size=(PARAMS['batch_size'], 4, PARAMS['img_size'], PARAMS['img_size']))
-if PARAMS["task"]=="all":
+if PARAMS["neptune"]:
   for line in str(model_stats).splitlines():
     neptune.log_text('model_summary', line)
 
@@ -100,7 +101,8 @@ if PARAMS["task"] in ["train", "all"]:
       outputs = []
       for k in metrics.keys():
           outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
-          neptune.log_metric("overtrain_"+k, metrics[k] / epoch_samples) #log
+          if PARAMS['neptune']:
+            neptune.log_metric("overtrain_"+k, metrics[k] / epoch_samples) #log
       print("{}: {}".format("train", ", ".join(outputs)))
 
   #training loop
@@ -213,7 +215,7 @@ if PARAMS["task"] in ["predict", "all"]:
     y_dem_pr[i] = denormalize(y_dem_pr[i], "dem")
   fig = plot_side_by_side(x_ort, x_dem, y_dem_gt, y_dem_pr)
 
-if PARAMS["task"]=="all":
-  neptune.log_image('matplotlib-fig', fig, image_name='input-gt-output')
+if PARAMS["neptune"]:
+  neptune.log_image('input-gt-output', fig, image_name='input-gt-output')
   neptune.stop()
 
