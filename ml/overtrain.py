@@ -152,7 +152,7 @@ if PARAMS["task"] in ["train", "all"]:
 
               # deep copy the model
 
-              if epoch_loss < best_loss:
+              if epoch_loss - best_loss < -0.000001:
                 no_improvement = 0
                 print("Loss improved by {}. Saving best model.".format(best_loss-epoch_loss))
                 best_loss = epoch_loss
@@ -194,14 +194,23 @@ if PARAMS["task"] in ["predict", "all"]:
   inputs = inputs.to(device)
   gts = gts.to(device)
 
-  gts = gts.data.cpu().numpy()
+  gts = gts.data.cpu()
   pred = model(inputs)
 
-  pred = pred.data.cpu().numpy()
+  pred = pred.data.cpu()
   inputs = inputs.data.cpu()
 
   # use helper function to plot
-  fig = plot_side_by_side(inputs, gts, pred)
+  x_dem = inputs[:,0].numpy()
+  x_ort = inputs[:,1:4].numpy()
+  y_dem_gt = gts[:,0].numpy()
+  y_dem_pr = pred[:,0].numpy()
+  for i in range(x_ort.shape[0]):
+    x_dem[i] = denormalize(x_dem[i], "dem")
+    x_ort[i] = denormalize(x_ort[i], "ort")
+    y_dem_gt[i] = denormalize(y_dem_gt[i], "dem")
+    y_dem_pr[i] = denormalize(y_dem_pr[i], "dem")
+  fig = plot_side_by_side(x_ort, x_dem, y_dem_gt, y_dem_pr)
 
 if PARAMS["task"]=="all":
   from neptunecontrib.api import log_chart
