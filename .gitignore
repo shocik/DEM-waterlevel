@@ -6,6 +6,11 @@ tmp
 __pycache__
 DoInterpolacji2.tab
 points.lyr
+<<<<<<< HEAD
 *.pth
 ml/config.cfg
 ml-env
+=======
+
+config.cfg
+>>>>>>> e0955b7c4b67b9999eedaeece6647326e02125d5

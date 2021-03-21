@@ -42,10 +42,16 @@ print("Task: " + PARAMS["task"])
 
 if PARAMS["task"]=="all":
   #neptune initialization
+<<<<<<< HEAD
  
   import configparser
   config = configparser.ConfigParser()
   config.read("./ml/config.cfg")
+=======
+  import configparser
+  config = configparser.ConfigParser()
+  config.read("./config.cfg")
+>>>>>>> e0955b7c4b67b9999eedaeece6647326e02125d5
   import neptune
   neptune.init(project_qualified_name=config["neptune"]["project"],
               api_token=config["neptune"]["token"],
