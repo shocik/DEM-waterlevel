@@ -9,8 +9,8 @@ from helper import plot_side_by_side
 
 
 dir = os.path.normpath(r"D:\Doktorat\Badania\DEM-waterlevel\dataset\train")
-dataset = DenoiseDataset(dir, 256, names=["17.npy"])
-batch_size=1
+dataset = DenoiseDataset(dir, 256, augment=True, repeat=2)
+batch_size=8
 dataloader = DataLoader(dataset, batch_size, shuffle=False, num_workers=0)
 
 x, y = next(iter(dataloader))
