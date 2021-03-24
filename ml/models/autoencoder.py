@@ -32,9 +32,9 @@ class Autoencoder(nn.Module):
             nn.BatchNorm2d(128),
         )
         self.dense = torch.nn.Sequential(
-            torch.nn.Linear(int(128*input_size/8*input_size/8),512),
-            torch.nn.Linear(512,512),
-            torch.nn.Linear(512,int(128*input_size/8*input_size/8))
+            torch.nn.Linear(int(128*input_size/8*input_size/8),1024),
+            torch.nn.Linear(1024,1024),
+            torch.nn.Linear(1024,int(128*input_size/8*input_size/8))
         )
         self.decoder = torch.nn.Sequential(
             #Print(),

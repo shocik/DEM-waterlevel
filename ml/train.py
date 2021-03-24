@@ -26,8 +26,8 @@ from helper import plot_side_by_side, denormalize
 PARAMS = {
 
     "img_size": 256,
-    "model": "autoencoder",
-    "learning_rate": 0.1,
+    "model": "vgg_unet",
+    "learning_rate": 0.01,
     "batch_size": 16,
     'epochs': 1000,
     'patience': 10,
@@ -67,7 +67,7 @@ dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=5)
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=20)
 test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'])
 
 batch_size = PARAMS['batch_size']
@@ -161,7 +161,7 @@ if PARAMS["task"] in ["train", "all"]:
         epoch_loss = metrics['loss'] / epoch_samples
 
         # deep copy the model
-        if phase == 'train':
+        if phase == 'val':
           if epoch_loss - best_loss < -PARAMS['min_improvement']:
             no_improvement = 0
             print("Val loss improved by {}. Saving best model.".format(best_loss-epoch_loss))

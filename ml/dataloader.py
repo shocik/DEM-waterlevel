@@ -47,8 +47,8 @@ class DenoiseDataset(Dataset):
         random.seed(i)
         offset = -random.uniform(0., 200.)
         
-        x_dem += offset
-        y_dem += offset
+        #x_dem += offset
+        #y_dem += offset
 
         x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
         x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
