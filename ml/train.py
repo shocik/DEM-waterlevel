@@ -28,11 +28,10 @@ PARAMS = {
     "img_size": 256,
     "model": "autoencoder",
     "learning_rate": 0.1,
-    "batch_size": 1,
+    "batch_size": 16,
     'epochs': 1000,
     'patience': 10,
     'image_preload': False,
-    'names': ['17.npy'],
     'task': "all",
     'min_improvement': 0.001,
     'neptune': True
@@ -62,21 +61,25 @@ if PARAMS["neptune"]:
               api_token=config["neptune"]["token"],
               )
   neptune.create_experiment(params=PARAMS, upload_source_files=['ml/overtrain.py', "ml/models/"+model_src])
-  neptune.append_tag("overtrain")
+
 #dataset configuration
 dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], names=PARAMS['names'])
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=5)
+test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'])
 
 batch_size = PARAMS['batch_size']
-dataloader = DataLoader(train_set, batch_size=PARAMS['batch_size'], shuffle=False, num_workers=0)
+dataloaders = {
+    'train': DataLoader(train_set, batch_size=PARAMS['batch_size'], shuffle=True, num_workers=0),
+    'val': DataLoader(test_set, batch_size=PARAMS['batch_size'], shuffle=True, num_workers=0)
+}
 
 # load images - useful if you want to save some time by preloading images (very time-consuming) when 
 # the model is still not fuctional and cant run standard training.
 if PARAMS['image_preload']:
-  for phase in dataloader:
+  for phase in dataloaders:
     for inputs, labels in tqdm(dataloader[phase]):
       pass
 
@@ -99,86 +102,88 @@ if PARAMS["task"] in ["train", "all"]:
       metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
       return loss
 
-  def print_metrics(metrics, epoch_samples):   
-
-      outputs = []
-      for k in metrics.keys():
-          outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
-          if PARAMS['neptune']:
-            neptune.log_metric("overtrain_"+k, metrics[k] / epoch_samples) #log
-      print("{}: {}".format("train", ", ".join(outputs)))
+  def print_metrics(metrics, epoch_samples, phase):   
+    print(epoch_samples) 
+    outputs = []
+    for k in metrics.keys():
+        outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
+        neptune.log_metric(phase+"_"+k, metrics[k] / epoch_samples) #log
+    print("{}: {}".format(phase, ", ".join(outputs)))
 
   #training loop
-  def train_model(model, dataloader, optimizer, device, num_epochs=25, patience=-1):
-      best_model_wts = copy.deepcopy(model.state_dict())
-      best_loss = float('inf')
-      no_improvement = 0
-      for epoch in range(num_epochs):
-          print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-          print('-' * 10)
-          
-          since = time.time()
+  def train_model(model, dataloaders, optimizer, device, num_epochs=25, patience=-1):
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_loss = float('inf')
+    no_improvement = 0
+    for epoch in range(num_epochs):
+      print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+      print('-' * 10)
+      
+      since = time.time()
 
-          # Each epoch has a training and validation phase
+      # Each epoch has a training and validation phase
 
-
+      for phase in ['train', 'val']:
+        if phase == 'train':
           for param_group in optimizer.param_groups:
-              print("LR", param_group['lr'])
-              
+            print("LR", param_group['lr'])
+            
           model.train()  # Set model to training mode
+        else:
+          model.eval()
 
+        metrics = defaultdict(float)
+        epoch_samples = 0
+            
+        for inputs, labels in tqdm(dataloaders[phase]):
+          inputs = inputs.to(device)
+          labels = labels.to(device)             
 
-          metrics = defaultdict(float)
-          epoch_samples = 0
-              
-          for inputs, labels in tqdm(dataloader):
-              inputs = inputs.to(device)
-              labels = labels.to(device)             
+          # zero the parameter gradients
+          optimizer.zero_grad()
 
-              # zero the parameter gradients
-              optimizer.zero_grad()
+          # forward
+          # track history if only in train
+          with torch.set_grad_enabled(phase == 'train'):
+            outputs = model(inputs)
+            loss = calc_loss(outputs, labels, metrics)
+            #print(model.encoder[0].weight.grad)
+            # backward + optimize only if in training phase
+            if phase == 'train':
+              loss.backward()
+              #pdb.set_trace()
+              optimizer.step()
 
-              # forward
-              # track history if only in train
-              with torch.set_grad_enabled(True):
-                  outputs = model(inputs)
-                  loss = calc_loss(outputs, labels, metrics)
-                  #print(model.encoder[0].weight.grad)
-                  # backward + optimize only if in training phase
-  
-                  loss.backward()
-                  #pdb.set_trace()
-                  optimizer.step()
+          # statistics
+          epoch_samples += inputs.size(0)
 
-              # statistics
-              epoch_samples += inputs.size(0)
+        print_metrics(metrics, epoch_samples, phase)
+        epoch_loss = metrics['loss'] / epoch_samples
 
-              print_metrics(metrics, epoch_samples)
-              epoch_loss = metrics['loss'] / epoch_samples
+        # deep copy the model
+        if phase == 'train':
+          if epoch_loss - best_loss < -PARAMS['min_improvement']:
+            no_improvement = 0
+            print("Val loss improved by {}. Saving best model.".format(best_loss-epoch_loss))
+            best_loss = epoch_loss
+            best_model_wts = copy.deepcopy(model.state_dict())
+          else:
+            no_improvement += 1
+            print("No loss improvement since {}/{} epochs.".format(no_improvement,patience))
+            
+      time_elapsed = time.time() - since
+      print('{:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+      if patience >= 0 and no_improvement > patience:
+        break
+    print('Best loss: {:4f}'.format(best_loss))
 
-              # deep copy the model
-
-              if epoch_loss - best_loss < -PARAMS['min_improvement']:
-                no_improvement = 0
-                print("Loss improved by {}. Saving best model.".format(best_loss-epoch_loss))
-                best_loss = epoch_loss
-                best_model_wts = copy.deepcopy(model.state_dict())
-              else:
-                no_improvement += 1
-                print("No loss improvement since {}/{} epochs.".format(no_improvement,patience))
-          time_elapsed = time.time() - since
-          print('{:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-          if patience >= 0 and no_improvement > patience:
-            break
-      print('Best loss: {:4f}'.format(best_loss))
-
-      # load best model weights
-      model.load_state_dict(best_model_wts)
-      return model
+    # load best model weights
+    model.load_state_dict(best_model_wts)
+    return model
 
   #model training
   optimizer_ft = optim.Adam(model.parameters(), lr=PARAMS['learning_rate'])
-  model = train_model(model, dataloader, optimizer_ft, device, num_epochs=PARAMS['epochs'], patience=PARAMS['patience'])
+  model = train_model(model, dataloaders, optimizer_ft, device, num_epochs=PARAMS['epochs'], patience=PARAMS['patience'])
 
   # save weights
   torch.save(model.state_dict(),"state_dict.pth")
@@ -195,7 +200,7 @@ if PARAMS["task"] in ["predict", "all"]:
   import math
   model.eval()   # Set model to evaluate mode
   test_dataset = train_set#DenoiseDataset(test_dir, img_size=PARAMS['img_size'], count=PARAMS["test_dataset_size"])
-  test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
+  test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, num_workers=0)
   inputs, gts = next(iter(test_loader))
   inputs = inputs.to(device)
   gts = gts.to(device)

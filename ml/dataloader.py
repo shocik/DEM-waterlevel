@@ -18,7 +18,8 @@ class DenoiseDataset(Dataset):
             img_size,
             augment=False,
             normalize=True,
-            names=[]
+            names=[],
+            repeat=1
     ):
 
         self.img_size = (img_size, img_size)
@@ -28,9 +29,9 @@ class DenoiseDataset(Dataset):
         self.x_ort_dir = os.path.join(dir,"x_ort")
         self.y_dem_dir = os.path.join(dir,"y_dem")
         if names:
-            self.names = names
+            self.names = names*repeat
         else:
-            self.names = os.listdir(self.x_ort_dir)
+            self.names = os.listdir(self.x_ort_dir)*repeat
         print(self.names)
         self.x_dem_fps = [os.path.join(self.x_dem_dir, name) for name in self.names]
         self.x_ort_fps = [os.path.join(self.x_ort_dir, name) for name in self.names]
@@ -40,7 +41,9 @@ class DenoiseDataset(Dataset):
         random.seed(i)
         rotation = random.randint(0,3)
         random.seed(i)
-        mirror = bool(random.getrandbits(1))
+        flip_x = bool(random.getrandbits(1))
+        random.seed(i+123456789)
+        flip_y = bool(random.getrandbits(1))
         random.seed(i)
         offset = -random.uniform(0., 200.)
         
@@ -50,7 +53,14 @@ class DenoiseDataset(Dataset):
         x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
         x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
         y_dem = np.copy(np.rot90(y_dem,rotation,(2,1)))
-
+        if flip_x:  
+            y_dem = np.copy(np.flip(y_dem,1))
+            x_ort = np.copy(np.flip(x_ort,1))
+            x_dem = np.copy(np.flip(x_dem,1))
+        if flip_y:
+            y_dem = np.copy(np.flip(y_dem,2))
+            x_ort = np.copy(np.flip(x_ort,2))
+            x_dem = np.copy(np.flip(x_dem,2))
         return (x_dem, x_ort, y_dem)
    
     def __getitem__(self, i):

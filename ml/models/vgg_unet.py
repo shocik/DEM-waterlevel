@@ -116,5 +116,5 @@ class VggUnet(nn.Module):
                 i-=1 # 5 -> 1
             else:
                 x = layer(x)
-        x = self.activation(x)
+        #x = self.activation(x)
         return x  
