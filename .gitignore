@@ -9,3 +9,4 @@ points.lyr
 *.pth
 ml/config.cfg
 ml-env
+predictions

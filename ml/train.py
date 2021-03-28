@@ -32,9 +32,9 @@ PARAMS = {
     'epochs': 1000,
     'patience': 10,
     'image_preload': False,
-    'task': "all",
+    'task': "predict",
     'min_improvement': 0.001,
-    'neptune': True
+    'neptune': False
 }
 if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
@@ -199,8 +199,8 @@ if PARAMS["task"] in ["predict", "all"]:
   # visualize example segmentation
   import math
   model.eval()   # Set model to evaluate mode
-  test_dataset = train_set#DenoiseDataset(test_dir, img_size=PARAMS['img_size'], count=PARAMS["test_dataset_size"])
-  test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, num_workers=0)
+  test_dataset = test_set#DenoiseDataset(test_dir, img_size=PARAMS['img_size'], count=PARAMS["test_dataset_size"])
+  test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=0)
   inputs, gts = next(iter(test_loader))
   inputs = inputs.to(device)
   gts = gts.to(device)

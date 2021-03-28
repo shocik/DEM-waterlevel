@@ -19,7 +19,8 @@ class DenoiseDataset(Dataset):
             augment=False,
             normalize=True,
             names=[],
-            repeat=1
+            repeat=1,
+            return_names=False
     ):
 
         self.img_size = (img_size, img_size)
@@ -28,6 +29,7 @@ class DenoiseDataset(Dataset):
         self.x_dem_dir = os.path.join(dir,"x_dem")
         self.x_ort_dir = os.path.join(dir,"x_ort")
         self.y_dem_dir = os.path.join(dir,"y_dem")
+        self.return_names = return_names
         if names:
             self.names = names*repeat
         else:
@@ -96,8 +98,10 @@ class DenoiseDataset(Dataset):
 
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
-
-        return x, y
+        if self.return_names:
+            return x, y, os.path.basename(self.x_dem_fps[i])
+        else:
+            return x, y
         
     def __len__(self):
         return len(self.names)

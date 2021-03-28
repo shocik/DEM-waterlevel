@@ -36,11 +36,19 @@ def plot_side_by_side(*arg):
     if y_size==1:
         axs = np.expand_dims(axs,0)
     for y in range(y_size):
+        first_dem = True
         for x in range(x_size):
             img = arg[x][y]
             if len(img.shape)==3:
                 img = np.moveaxis(img, 0, -1)
-            axs[y, x].imshow(img)
+                axs[y, x].imshow(img)
+            elif len(img.shape)==2:
+                if first_dem:
+                    min_val = np.amin(img)
+                    max_val = np.amax(img)
+                    first_dem = False
+                axs[y, x].imshow(img, vmin = min_val, vmax = max_val)
+            axs[y, x].axis('off')
             #x_ort = x[i,1:4]#.permute(1, 2, 0)
             #axs[i, 0].imshow(x_ort)
 
@@ -52,6 +60,7 @@ def plot_side_by_side(*arg):
             #if y_dem_pr is not None:
             #    axs[i, 3].imshow(denormalize(np.squeeze(y_dem_pr[i]),"dem"), vmin = min_val, vmax = max_val)
     axs = np.squeeze(axs)
+    
     plt.show()
     return fig
 
