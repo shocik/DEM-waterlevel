@@ -28,13 +28,14 @@ x_dem_dir = os.path.join(dir,"x_dem")
 x_ort_dir = os.path.join(dir,"x_ort")
 y_dem_dir_gt = os.path.join(dir,"y_dem")
 y_dem_dir_pr = "predictions"
-names = os.listdir(x_ort_dir)
+names = ["20.npy", "37.npy", "5.npy", "52.npy", "56.npy", "83.npy"] #os.listdir(x_ort_dir)
 
 x_dem_fps = [os.path.join(x_dem_dir, name) for name in names]
 x_ort_fps = [os.path.join(x_ort_dir, name) for name in names]
 y_dem_fps_gt = [os.path.join(y_dem_dir_gt, name) for name in names]
 y_dem_fps_pr = [os.path.join(y_dem_dir_pr, name) for name in names]
 img_size = (256,256)
+
 for i in range(len(x_ort_fps)):
     x_dem = np.load(x_dem_fps[i])
     x_dem = cv2.resize(x_dem,img_size)
@@ -81,20 +82,19 @@ for i in range(len(x_ort_fps)):
         for i in range(2):
             for j in range(2):
                 axs[i,j].axis('off')
-                axs[i,j].plot(x,y,"r")
+                axs[i,j].plot(x,y,color="white",linewidth=4)
+                axs[i,j].plot(x,y,color="red",linewidth=1)
         length = int(np.hypot(x[1]-x[0], y[1]-y[0]))
         x, y = np.linspace(x[0], x[1], length), np.linspace(y[0], y[1], length)
-        
-
 
         plt.show()
         x_data = np.array([ element*10/256 for element in range(length) ])
-        x_dem_zi = x_dem[x.astype(np.int), y.astype(np.int)]
-        y_dem_gt_zi = y_dem_gt[x.astype(np.int), y.astype(np.int)]
-        y_dem_pr_zi = y_dem_pr[x.astype(np.int), y.astype(np.int)]
-        plt.plot(x_dem_zi, label="Input DEM")
-        plt.plot(y_dem_gt_zi, label="Ground truth DEM")
-        plt.plot(y_dem_pr_zi, label="Deep learning corrected DEM")
+        x_dem_zi =          x_dem[y.astype(np.int), x.astype(np.int)]
+        y_dem_gt_zi =       y_dem_gt[y.astype(np.int), x.astype(np.int)]
+        y_dem_pr_zi =       y_dem_pr[y.astype(np.int), x.astype(np.int)]
+        plt.plot(x_data, x_dem_zi, label="Input DEM")
+        plt.plot(x_data, y_dem_gt_zi, label="Ground truth DEM")
+        plt.plot(x_data, y_dem_pr_zi, label="Deep learning corrected DEM")
         plt.margins(x=0)
         plt.ylabel("Elevation (masl)")
         plt.xlabel("Distance (m)")
