@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 
 
 def normalize(arr, type):
-  if type=="dem":
-      mu = 213.30667114257812
-      sigma = 0.6645699739456177
-      return (arr-mu)/sigma
-  elif type=="ort":
-      mu=[0.485, 0.456, 0.406]
-      sigma=[0.229, 0.224, 0.225]
-      for i in range(3):
-          arr[i]=(arr[i]-mu[i])/sigma[i]
-      return arr
+    if type=="dem":
+        mu = 213.30667114257812
+        sigma = 0.6645699739456177
+        return (arr-mu)/sigma
+    elif type=="ort":
+        mu=[0.485, 0.456, 0.406]
+        sigma=[0.229, 0.224, 0.225]
+        for i in range(3):
+            arr[i]=(arr[i]-mu[i])/sigma[i]
+        return arr            
 
 def denormalize(arr, type):
   if type=="dem":

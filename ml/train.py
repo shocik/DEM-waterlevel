@@ -34,7 +34,9 @@ PARAMS = {
     'image_preload': False,
     'task': "predict",
     'min_improvement': 0.001,
-    'neptune': False
+    'neptune': False,
+    'mode': "level",
+    'level_mode_loss_ratio': 0.5,
 }
 if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
@@ -67,7 +69,7 @@ dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=20)
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=20, mode=PARAMS["mode"])
 test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'])
 
 batch_size = PARAMS['batch_size']
@@ -98,9 +100,15 @@ if PARAMS["task"] in ["train", "all"]:
   from collections import defaultdict
   import torch.nn.functional as F
   def calc_loss(pred, target, metrics):
+    if PARAMS["mode"]=="dem":
       loss = F.mse_loss(pred, target)
-      metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
-      return loss
+    elif PARAMS["mode"]=="level":
+      classification_loss = F.binary_cross_entropy(pred[0], target[0])
+      regression_loss = F.mse_loss(pred[1], target[1])
+      loss = PARAMS['level_mode_loss_ratio']*classification_loss+(1-PARAMS['level_mode_loss_ratio'])*regression_loss
+    metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
+    return loss
+    elif
 
   def print_metrics(metrics, epoch_samples, phase):   
     print(epoch_samples) 

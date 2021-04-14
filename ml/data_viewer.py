@@ -4,11 +4,11 @@ import torch
 from helper import plot_side_by_side
 import cv2
 
-dir = "dataset/test"
+dir = "dataset/train"
 x_dem_dir = os.path.join(dir,"x_dem")
 x_ort_dir = os.path.join(dir,"x_ort")
 y_dem_dir = os.path.join(dir,"y_dem")
-names = os.listdir(x_ort_dir)
+names = ["97.npy", "98.npy"]#os.listdir(x_ort_dir)
 
 x_dem_fps = [os.path.join(x_dem_dir, name) for name in names]
 x_ort_fps = [os.path.join(x_ort_dir, name) for name in names]
