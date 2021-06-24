@@ -32,10 +32,10 @@ PARAMS = {
     'epochs': 1000,
     'patience': 10,
     'image_preload': False,
-    'task': "predict",
+    'task': "all",#"all", "train", "predict"
     'min_improvement': 0.001,
     'neptune': True,
-    'mode': "dem",
+    'mode': "level"#"dem" - stara wersja (odszumianie), "level" - nowa wersja (pojedyncza wartosc sredniej wysoskosci rzeki)
 }
 #CUDA_LAUNCH_BLOCKING=1
 if len(sys.argv)>1:
