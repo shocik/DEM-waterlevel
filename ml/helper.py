@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def normalize(arr, type):
     if type=="dem":
-        mu = 213.30667114257812
+        mu = 0. #213.30667114257812
         sigma = 0.6645699739456177
         return (arr-mu)/sigma
     elif type=="ort":
@@ -17,7 +17,7 @@ def normalize(arr, type):
 
 def denormalize(arr, type):
   if type=="dem":
-      mu = 213.30667114257812
+      mu = 0. #213.30667114257812
       sigma = 0.6645699739456177
       return sigma*arr+mu
   elif type=="ort":

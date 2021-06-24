@@ -33,27 +33,31 @@ class DenoiseDataset(Dataset):
         self.y_dem_dir = os.path.join(dir,"y_dem")
         self.return_names = return_names
         self.mode = mode
+        if mode=="level":
+            self.level_dict = self.level_reader()
         if names:
             self.names = names*repeat
         else:
-            self.names = os.listdir(self.x_ort_dir)*repeat
+            if mode=="dem":
+                self.names = os.listdir(self.x_ort_dir)*repeat
+            elif mode=="level":
+                self.names = list(self.level_dict.keys())*repeat
         print(self.names)
         self.x_dem_fps = [os.path.join(self.x_dem_dir, name) for name in self.names]
         self.x_ort_fps = [os.path.join(self.x_ort_dir, name) for name in self.names]
         if mode=="dem":
             self.y_dem_fps = [os.path.join(self.y_dem_dir, name) for name in self.names]
-        elif mode=="level":
-            self.water_bool_dict, self.level_dict = self.level_reader()
 
     def level_reader(self):
         level_dict = dict()
-        water_bool_dict = dict()
+        #water_bool_dict = dict()
         with open(os.path.join(self.dir,'levels.csv'), mode='r') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                water_bool_dict[row[0]] = int(row[1])
-                level_dict[row[0]] = float(row[2])
-        return water_bool_dict, level_dict
+                #if bool(row[1]):
+                #water_bool_dict[row[0]] = int(row[1])
+                level_dict[row[0]] = float(row[1])
+        return level_dict
 
     def augmentation(self, x_dem, x_ort, y, i):
 
@@ -63,10 +67,10 @@ class DenoiseDataset(Dataset):
         flip_x = bool(random.getrandbits(1))
         random.seed(i+123456789)
         flip_y = bool(random.getrandbits(1))
-        random.seed(i)
-        offset = random.uniform(-10., 10.)
-        x_dem += offset
-        y += offset
+        #random.seed(i)
+        #offset = random.uniform(-10., 10.)
+        #x_dem += offset
+        #y += offset
 
         x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
         x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
@@ -105,7 +109,7 @@ class DenoiseDataset(Dataset):
             y = cv2.resize(y,self.img_size)
             y = np.expand_dims(y,0)
         elif self.mode=="level":
-            y = self.level_dict[self.names[i]]
+            y = np.array([self.level_dict[self.names[i]]]).astype(np.float32)
         if self.augment:
             x_dem, x_ort, y = self.augmentation(x_dem, x_ort, y, i)
         if self.normalize:
@@ -114,8 +118,6 @@ class DenoiseDataset(Dataset):
             y = normalize(y, "dem")
 
         x = np.vstack((x_dem, x_ort))
-        if self.mode=="level":
-            y = np.array([ float(self.water_bool_dict[self.names[i]]), y ])
 
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)

@@ -27,17 +27,17 @@ PARAMS = {
 
     "img_size": 256,
     "model": "vgg_unet",
-    "learning_rate": 0.01,
+    "learning_rate": 0.0001,
     "batch_size": 16,
     'epochs': 1000,
     'patience': 10,
     'image_preload': False,
     'task': "predict",
     'min_improvement': 0.001,
-    'neptune': False,
-    'mode': "level",
-    'level_mode_loss_ratio': 0.5,
+    'neptune': True,
+    'mode': "dem",
 }
+#CUDA_LAUNCH_BLOCKING=1
 if len(sys.argv)>1:
   assert sys.argv[1] in ["train", "predict", "all"]
   PARAMS["task"]=sys.argv[1]
@@ -47,6 +47,10 @@ if PARAMS['model'] == "vgg_unet":
   from models.vgg_unet import VggUnet
   model = VggUnet()
   model_src = 'vgg_unet.py'
+if PARAMS['model'] == "vgg_unet_level":
+  from models.vgg_unet_level import VggUnetLevel
+  model = VggUnetLevel(PARAMS['img_size'])
+  model_src = 'vgg_unet_level.py'
 elif PARAMS['model'] == "autoencoder":
   from models.autoencoder import Autoencoder
   model = Autoencoder(PARAMS['img_size'])
@@ -62,15 +66,15 @@ if PARAMS["neptune"]:
   neptune.init(project_qualified_name=config["neptune"]["project"],
               api_token=config["neptune"]["token"],
               )
-  neptune.create_experiment(params=PARAMS, upload_source_files=['ml/overtrain.py', "ml/models/"+model_src])
+  neptune.create_experiment(params=PARAMS, upload_source_files=['ml/train.py', "ml/models/"+model_src])
 
 #dataset configuration
 dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=20, mode=PARAMS["mode"])
-test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'])
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=40, mode=PARAMS["mode"])
+test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment="True", mode=PARAMS["mode"])
 
 batch_size = PARAMS['batch_size']
 dataloaders = {
@@ -89,7 +93,7 @@ if PARAMS['image_preload']:
 
 #model structure preview
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+print(f"device: {device}")
 model = model.to(device)
 model_stats = summary(model, input_size=(PARAMS['batch_size'], 4, PARAMS['img_size'], PARAMS['img_size']))
 if PARAMS["neptune"]:
@@ -100,22 +104,24 @@ if PARAMS["task"] in ["train", "all"]:
   from collections import defaultdict
   import torch.nn.functional as F
   def calc_loss(pred, target, metrics):
-    if PARAMS["mode"]=="dem":
-      loss = F.mse_loss(pred, target)
-    elif PARAMS["mode"]=="level":
-      classification_loss = F.binary_cross_entropy(pred[0], target[0])
-      regression_loss = F.mse_loss(pred[1], target[1])
-      loss = PARAMS['level_mode_loss_ratio']*classification_loss+(1-PARAMS['level_mode_loss_ratio'])*regression_loss
+    #if PARAMS["mode"]=="dem":
+    loss = F.mse_loss(pred, target)
+    #elif PARAMS["mode"]=="level":
+      #classification_loss = F.binary_cross_entropy(pred[:,0], target[:,0])
+      #regression_loss = F.mse_loss(pred[:,1], target[:,1])
+      #loss = PARAMS['level_mode_loss_ratio']*classification_loss+(1-PARAMS['level_mode_loss_ratio'])*regression_loss
     metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
+    #metrics['classification_loss'] += classification_loss.data.cpu().numpy() * target.size(0)
+    #metrics['regression_loss'] += regression_loss.data.cpu().numpy() * target.size(0)
     return loss
-    elif
 
   def print_metrics(metrics, epoch_samples, phase):   
-    print(epoch_samples) 
+    print(epoch_samples)
     outputs = []
     for k in metrics.keys():
         outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
-        neptune.log_metric(phase+"_"+k, metrics[k] / epoch_samples) #log
+        if PARAMS["neptune"]:
+          neptune.log_metric(phase+"_"+k, metrics[k] / epoch_samples) #log
     print("{}: {}".format(phase, ", ".join(outputs)))
 
   #training loop
@@ -197,41 +203,82 @@ if PARAMS["task"] in ["train", "all"]:
   torch.save(model.state_dict(),"state_dict.pth")
 
 if PARAMS["task"] in ["predict", "all"]:
+  print("before device")
   # load weights
   model.load_state_dict(torch.load("state_dict.pth", map_location="cpu"))
   device = torch.device('cpu')
   model = model.to(device)
   # denormalization function
-
+  print("device OK")
 
   # visualize example segmentation
   import math
   model.eval()   # Set model to evaluate mode
-  test_dataset = test_set#DenoiseDataset(test_dir, img_size=PARAMS['img_size'], count=PARAMS["test_dataset_size"])
-  test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=0)
-  inputs, gts = next(iter(test_loader))
-  inputs = inputs.to(device)
-  gts = gts.to(device)
+  test_dataset = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment=False, return_names=False, mode=PARAMS["mode"])
+  test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=0)
+  
+  if PARAMS["mode"] == "level":
+    name_arr = []
+    gt_arr = []
+    pr_arr = []
+    for inputs, gts, names in test_loader:
 
-  gts = gts.data.cpu()
-  pred = model(inputs)
+      inputs = inputs.to(device)
+      gts = gts.to(device)
 
-  pred = pred.data.cpu()
-  inputs = inputs.data.cpu()
+      gts = gts.data.cpu()
+      pred = model(inputs)
 
-  # use helper function to plot
-  x_dem = inputs[:,0].numpy()
-  x_ort = inputs[:,1:4].numpy()
-  y_dem_gt = gts[:,0].numpy()
-  y_dem_pr = pred[:,0].numpy()
-  for i in range(x_ort.shape[0]):
-    x_dem[i] = denormalize(x_dem[i], "dem")
-    x_ort[i] = denormalize(x_ort[i], "ort")
-    y_dem_gt[i] = denormalize(y_dem_gt[i], "dem")
-    y_dem_pr[i] = denormalize(y_dem_pr[i], "dem")
-  fig = plot_side_by_side(x_ort, x_dem, y_dem_gt, y_dem_pr)
+      pred = pred.data.cpu()
+      inputs = inputs.data.cpu()
 
-if PARAMS["neptune"]:
-  neptune.log_image('input-gt-output', fig, image_name='input-gt-output')
-  neptune.stop()
+
+      x_dem = inputs[:,0].numpy()
+      x_ort = inputs[:,1:4].numpy()
+
+      y_gt = np.squeeze(gts.numpy())
+      y_pr = np.squeeze(pred.numpy())
+      for i in range(x_ort.shape[0]):
+        x_dem[i] = denormalize(x_dem[i], "dem")
+        x_ort[i] = denormalize(x_ort[i], "ort")
+        y_gt[i] = denormalize(y_gt[i], "dem")
+        y_pr[i] = denormalize(y_pr[i], "dem")
+      name_arr = name_arr + list(names)
+      gt_arr = gt_arr + list(y_gt)
+      pr_arr = pr_arr + list(y_pr)
+      #print(y_gt)
+      #print(y_pr)
+      #print(np.subtract(y_pr,y_gt))
+    for i in range(len(name_arr)):
+      print("{},{},{}".format(name_arr[i],gt_arr[i],pr_arr[i]))
+    #print()
+    #print(gt_arr)
+    #print(pr_arr)
+  elif PARAMS["mode"] == "dem":
+    inputs, gts = next(iter(test_loader))
+    inputs = inputs.to(device)
+    gts = gts.to(device)
+
+    gts = gts.data.cpu()
+    pred = model(inputs)
+
+    pred = pred.data.cpu()
+    inputs = inputs.data.cpu()
+    print("getting data OK")
+    # use helper function to plot
+    x_dem = inputs[:,0].numpy()
+    x_ort = inputs[:,1:4].numpy()
+
+    y_dem_gt = gts[:,0].numpy()
+    y_dem_pr = pred[:,0].numpy()
+
+    for i in range(x_ort.shape[0]):
+      x_dem[i] = denormalize(x_dem[i], "dem")
+      x_ort[i] = denormalize(x_ort[i], "ort")
+      y_dem_gt[i] = denormalize(y_dem_gt[i], "dem")
+      y_dem_pr[i] = denormalize(y_dem_pr[i], "dem")
+    fig = plot_side_by_side(x_ort, x_dem, y_dem_gt, y_dem_pr)
+    if PARAMS["neptune"]:
+      neptune.log_image('input-gt-output', fig, image_name='input-gt-output')
+      neptune.stop()
 
