@@ -26,7 +26,7 @@ from helper import plot_side_by_side, denormalize
 PARAMS = {
 
     "img_size": 256,
-    "model": "vgg_unet",
+    "model": "vgg_unet_level",
     "learning_rate": 0.0001,
     "batch_size": 16,
     'epochs': 1000,
