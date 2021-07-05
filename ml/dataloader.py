@@ -12,6 +12,8 @@ from helper import normalize
 import matplotlib.pyplot as plt
 import csv
 
+PERMUTATION = 16
+
 class DenoiseDataset(Dataset):
     def __init__(
             self, 
@@ -20,7 +22,6 @@ class DenoiseDataset(Dataset):
             augment=False,
             normalize=True,
             names=[],
-            repeat=1,
             return_names=False,
             mode = "dem"#"level"
     ):
@@ -33,15 +34,16 @@ class DenoiseDataset(Dataset):
         self.y_dem_dir = os.path.join(dir,"y_dem")
         self.return_names = return_names
         self.mode = mode
+        
         if mode=="level":
             self.level_dict = self.level_reader()
         if names:
-            self.names = names*repeat
+            self.names = names
         else:
             if mode=="dem":
-                self.names = os.listdir(self.x_ort_dir)*repeat
+                self.names = os.listdir(self.x_ort_dir)
             elif mode=="level":
-                self.names = list(self.level_dict.keys())*repeat
+                self.names = list(self.level_dict.keys())
         print(self.names)
         self.x_dem_fps = [os.path.join(self.x_dem_dir, name) for name in self.names]
         self.x_ort_fps = [os.path.join(self.x_ort_dir, name) for name in self.names]
@@ -54,46 +56,36 @@ class DenoiseDataset(Dataset):
         with open(os.path.join(self.dir,'levels.csv'), mode='r') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                #if bool(row[1]):
-                #water_bool_dict[row[0]] = int(row[1])
                 level_dict[row[0]] = float(row[1])
         return level_dict
 
     def augmentation(self, x_dem, x_ort, y, i):
-
-        random.seed(i)
-        rotation = random.randint(0,3)
-        random.seed(i)
-        flip_x = bool(random.getrandbits(1))
-        random.seed(i+123456789)
-        flip_y = bool(random.getrandbits(1))
-        #random.seed(i)
-        #offset = random.uniform(-10., 10.)
-        #x_dem += offset
-        #y += offset
-
-        x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
-        x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
-        if self.mode=="dem":
-            y = np.copy(np.rot90(y,rotation,(2,1)))
+        m16 = i%16
+        m4 = m16%4
+        rotation = m16/4#values from 0 to 3
+        flip_x = m4 in [1,3]#
+        flip_y = m4 in [2,3]# 0 - no flip, 1 - only flip x, 2 - only flip y, 3 - flip x and y.
+        if rotation != 0:
+            x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
+            x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
+            if self.mode == "dem":
+                y = np.copy(np.rot90(y,rotation,(2,1)))
         if flip_x:
-            if self.mode=="dem":
-                y = np.copy(np.flip(y,1))
             x_ort = np.copy(np.flip(x_ort,1))
             x_dem = np.copy(np.flip(x_dem,1))
+            if self.mode == "dem":
+                y = np.copy(np.flip(y,1))
         if flip_y:
-            if self.mode=="dem":
-                y = np.copy(np.flip(y,2))
             x_ort = np.copy(np.flip(x_ort,2))
             x_dem = np.copy(np.flip(x_dem,2))
+            if self.mode == "dem":
+                y = np.copy(np.flip(y,2))
         return (x_dem, x_ort, y)
    
     def __getitem__(self, i):
-
         x_dem = np.load(self.x_dem_fps[i])
         x_dem = cv2.resize(x_dem,self.img_size)
         x_dem = np.expand_dims(x_dem,0)
-        
         x_ort = np.load(self.x_ort_fps[i]).astype(np.float32)
         x_ort = x_ort/255
         #(C,H,W)
@@ -127,4 +119,7 @@ class DenoiseDataset(Dataset):
             return x, y
         
     def __len__(self):
-        return len(self.names)
+        length = len(self.names)
+        if self.augment:
+            length = length*PERMUTATION
+        return length
