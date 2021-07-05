@@ -34,7 +34,7 @@ PARAMS = {
     'image_preload': False,
     'task': "all",#"all", "train", "predict"
     'min_improvement': 0.001,
-    'neptune': True,
+    'neptune': False,
     'mode': "level"#"dem" - stara wersja (odszumianie), "level" - nowa wersja (pojedyncza wartosc sredniej wysoskosci rzeki)
 }
 #CUDA_LAUNCH_BLOCKING=1
@@ -73,7 +73,7 @@ dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", repeat=40, mode=PARAMS["mode"])
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", mode=PARAMS["mode"])
 test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment="True", mode=PARAMS["mode"])
 
 batch_size = PARAMS['batch_size']
@@ -203,7 +203,6 @@ if PARAMS["task"] in ["train", "all"]:
   torch.save(model.state_dict(),"state_dict.pth")
 
 if PARAMS["task"] in ["predict", "all"]:
-  print("before device")
   # load weights
   model.load_state_dict(torch.load("state_dict.pth", map_location="cpu"))
   device = torch.device('cpu')
@@ -251,7 +250,9 @@ if PARAMS["task"] in ["predict", "all"]:
       #print(np.subtract(y_pr,y_gt))
     for i in range(len(name_arr)):
       print("{},{},{}".format(name_arr[i],gt_arr[i],pr_arr[i]))
-    #print()
+    RMSE = np.sqrt(np.mean((pr_arr-gt_arr)**2))
+    print(RMSE)
+    neptune.log_metric("RMSE", RMSE)
     #print(gt_arr)
     #print(pr_arr)
   elif PARAMS["mode"] == "dem":

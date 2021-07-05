@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
-vgg16_pretrained = models.vgg16(pretrained=True)
+#vgg16_pretrained = models.vgg16(pretrained=True)
 
 class VggUnetLevel(nn.Module):
     def __init__(self, input_size):

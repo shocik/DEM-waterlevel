@@ -62,9 +62,10 @@ class DenoiseDataset(Dataset):
     def augmentation(self, x_dem, x_ort, y, i):
         m16 = i%16
         m4 = m16%4
-        rotation = m16/4#values from 0 to 3
+        rotation = m16/4    #values from 0 to 3
         flip_x = m4 in [1,3]#
         flip_y = m4 in [2,3]# 0 - no flip, 1 - only flip x, 2 - only flip y, 3 - flip x and y.
+        print(f"{i}, {rotation}, {flip_x}, {flip_y}")
         if rotation != 0:
             x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
             x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
@@ -83,10 +84,11 @@ class DenoiseDataset(Dataset):
         return (x_dem, x_ort, y)
    
     def __getitem__(self, i):
-        x_dem = np.load(self.x_dem_fps[i])
+        img_i = i//16
+        x_dem = np.load(self.x_dem_fps[img_i])
         x_dem = cv2.resize(x_dem,self.img_size)
         x_dem = np.expand_dims(x_dem,0)
-        x_ort = np.load(self.x_ort_fps[i]).astype(np.float32)
+        x_ort = np.load(self.x_ort_fps[img_i]).astype(np.float32)
         x_ort = x_ort/255
         #(C,H,W)
         x_ort = np.moveaxis(x_ort, 0, -1)
@@ -97,11 +99,11 @@ class DenoiseDataset(Dataset):
         x_ort = np.moveaxis(x_ort, -1, 0)
         #(C,H,W)
         if self.mode=="dem":
-            y = np.load(self.y_dem_fps[i])
+            y = np.load(self.y_dem_fps[img_i])
             y = cv2.resize(y,self.img_size)
             y = np.expand_dims(y,0)
         elif self.mode=="level":
-            y = np.array([self.level_dict[self.names[i]]]).astype(np.float32)
+            y = np.array([self.level_dict[self.names[img_i]]]).astype(np.float32)
         if self.augment:
             x_dem, x_ort, y = self.augmentation(x_dem, x_ort, y, i)
         if self.normalize:
@@ -114,7 +116,7 @@ class DenoiseDataset(Dataset):
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
         if self.return_names:
-            return x, y, os.path.basename(self.x_dem_fps[i])
+            return x, y, os.path.basename(self.x_dem_fps[img_i])
         else:
             return x, y
         
