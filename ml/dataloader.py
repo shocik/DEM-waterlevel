@@ -62,10 +62,10 @@ class DenoiseDataset(Dataset):
     def augmentation(self, x_dem, x_ort, y, i):
         m16 = i%16
         m4 = m16%4
-        rotation = m16/4    #values from 0 to 3
+        rotation = m16//4    #values from 0 to 3
         flip_x = m4 in [1,3]#
         flip_y = m4 in [2,3]# 0 - no flip, 1 - only flip x, 2 - only flip y, 3 - flip x and y.
-        print(f"{i}, {rotation}, {flip_x}, {flip_y}")
+        #print(f"{i//16}, {i}, {rotation}, {flip_x}, {flip_y}")
         if rotation != 0:
             x_ort = np.copy(np.rot90(x_ort,rotation,(2,1)))
             x_dem = np.copy(np.rot90(x_dem,rotation,(2,1)))
@@ -84,7 +84,10 @@ class DenoiseDataset(Dataset):
         return (x_dem, x_ort, y)
    
     def __getitem__(self, i):
-        img_i = i//16
+        if self.augment:
+            img_i = i//16
+        else:
+            img_i = i
         x_dem = np.load(self.x_dem_fps[img_i])
         x_dem = cv2.resize(x_dem,self.img_size)
         x_dem = np.expand_dims(x_dem,0)
@@ -115,6 +118,7 @@ class DenoiseDataset(Dataset):
 
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
+        #print(self.x_dem_fps[img_i])
         if self.return_names:
             return x, y, os.path.basename(self.x_dem_fps[img_i])
         else:

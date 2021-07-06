@@ -24,7 +24,6 @@ from helper import plot_side_by_side, denormalize
 
 #training parameters in neptune format
 PARAMS = {
-
     "img_size": 256,
     "model": "vgg_unet_level",
     "learning_rate": 0.0001,
@@ -33,8 +32,8 @@ PARAMS = {
     'patience': 10,
     'image_preload': False,
     'task': "all",#"all", "train", "predict"
-    'min_improvement': 0.001,
-    'neptune': False,
+    'min_improvement': 0.0001,
+    'neptune': True,
     'mode': "level"#"dem" - stara wersja (odszumianie), "level" - nowa wersja (pojedyncza wartosc sredniej wysoskosci rzeki)
 }
 #CUDA_LAUNCH_BLOCKING=1
@@ -73,8 +72,8 @@ dataset_dir = os.path.normpath("dataset")
 train_dir = os.path.join(dataset_dir,"train")
 test_dir = os.path.join(dataset_dir,"test")
 
-train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment="True", mode=PARAMS["mode"])
-test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment="True", mode=PARAMS["mode"])
+train_set = DenoiseDataset(train_dir, img_size=PARAMS['img_size'], augment=True, mode=PARAMS["mode"])
+test_set = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment=True, mode=PARAMS["mode"])
 
 batch_size = PARAMS['batch_size']
 dataloaders = {
@@ -208,12 +207,11 @@ if PARAMS["task"] in ["predict", "all"]:
   device = torch.device('cpu')
   model = model.to(device)
   # denormalization function
-  print("device OK")
 
   # visualize example segmentation
   import math
   model.eval()   # Set model to evaluate mode
-  test_dataset = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment=False, return_names=False, mode=PARAMS["mode"])
+  test_dataset = DenoiseDataset(test_dir, img_size=PARAMS['img_size'], augment=False, return_names=True, mode=PARAMS["mode"])
   test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=0)
   
   if PARAMS["mode"] == "level":
@@ -248,11 +246,13 @@ if PARAMS["task"] in ["predict", "all"]:
       #print(y_gt)
       #print(y_pr)
       #print(np.subtract(y_pr,y_gt))
+      
     for i in range(len(name_arr)):
       print("{},{},{}".format(name_arr[i],gt_arr[i],pr_arr[i]))
-    RMSE = np.sqrt(np.mean((pr_arr-gt_arr)**2))
-    print(RMSE)
-    neptune.log_metric("RMSE", RMSE)
+    RMSE = np.sqrt(np.mean((np.array(pr_arr)-np.array(gt_arr))**2))
+    print(f"RMSE: {RMSE}")
+    if PARAMS["neptune"]:
+      neptune.log_metric("RMSE", RMSE)
     #print(gt_arr)
     #print(pr_arr)
   elif PARAMS["mode"] == "dem":
